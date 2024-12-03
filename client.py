@@ -53,7 +53,7 @@ class Client:
         self.listener_thread.start()
 
         while True:
-            message = input("Message: ")
+            message = input()
             if not self.running:
                 break
             if message:
