@@ -3,3 +3,5 @@
 __pycache__/
 *.env
 venv/
+fhommels.zip
+conversation_backup.txt
