@@ -14,6 +14,7 @@ class Server:
     client_addresses: dict[socket.socket, tuple[str, int]] = {}
     client_threads: list[threading.Thread] = []
     is_shutting_down: bool = False
+    semaphore = threading.Semaphore(1)
 
     def __init__(self, port: int = port, address: str = address) -> None:
         self.port = port
@@ -64,7 +65,11 @@ class Server:
         message_to_send = f"{client_name}: {content}"
         
         if "has joined the chat" not in content and "has left the chat" not in content:
-            self.conversation_history.append(message_to_send)
+            self.semaphore.acquire()
+            try:
+                self.conversation_history.append(message_to_send)
+            finally:
+                self.semaphore.release()
 
         for client in self.clients:
             if client != exclude_socket:

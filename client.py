@@ -14,6 +14,7 @@ class Client:
         self.address = address
         self.running = True
         signal.signal(signal.SIGINT, self.close)
+
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.connect((self.address, self.port))
@@ -25,7 +26,8 @@ class Client:
         except socket.error as e:
             print(f"Socket error: {e}")
             sys.exit(1)
-        
+
+
     def start_communication(self) -> None:
         def listen_for_messages():
             while self.running:
@@ -41,6 +43,8 @@ class Client:
                         self.running = False
                         self.send_message(f"{self.username} has left the chat")
                         self.close()
+                        os.kill(os.getpid(), signal.SIGTERM)
+                        sys.exit(0)
                         break
                     print(message)
                 except Exception as e:
@@ -52,12 +56,15 @@ class Client:
         self.listener_thread = threading.Thread(target=listen_for_messages)
         self.listener_thread.start()
 
-        while True:
-            message = input()
-            if not self.running:
+        while self.running:
+            try:
+                message = input()
+                if message:
+                    self.send_message(message)
+            except Exception as e:
+                print(f"Error: {e}")
+                self.close()
                 break
-            if message:
-                self.send_message(message)
 
     def send_message(self, message: str) -> None:
         try:
@@ -65,15 +72,19 @@ class Client:
         except:
             pass
 
-    def close(self, signum, frame):
+    def close(self, signum=None, frame=None):
+        if not self.running:
+            return
+        
         print("\nDisconnecting from server...")
         self.running = False
         try:
-            self.send_message(f"{self.username} has left the chat")
             self.socket.close()
-        except:
-            pass
-        self.listener_thread.join()
+        except Exception as e:
+            print(f"Error closing socket: {e}")
+        
+        if self.listener_thread.is_alive():
+            self.listener_thread.join()
         sys.exit(0)
 
 if __name__ == '__main__':
